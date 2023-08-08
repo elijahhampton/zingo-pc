@@ -447,32 +447,32 @@ class Routes extends React.Component<Props & RouteComponentProps, AppState> {
     this.rpc.clearTimers();
   };
 
-  shieldSaplingBalanceToOrchard = async () => {
+  shieldSaplingBalanceToOrchard = async (): Promise<string | { txid: string }> => {
     try {
-    const result = await this.rpc.shieldSaplingBalanceToOrchard()
+      const result = await this.rpc.shieldSaplingBalanceToOrchard();
+      
+      if (result.toLowerCase().startsWith("error") || !result.includes("txid")) {
+        throw result;
+      }
 
-    if (!result.includes('txid')) {
-      throw new Error(result)
-    }
-
+      return result;
     } catch(error) {
-      this.openErrorModal('Failed to shield balance', String(error))
+      throw error;
     }
-
   }
 
-  shieldTransparentBalanceToOrchard = async () => {
+  shieldTransparentBalanceToOrchard = async (): Promise<string | { txid: string }> => {
     try {
-    const result = await this.rpc.shieldTransparentBalanceToOrchard()
+      const result = await this.rpc.shieldTransparentBalanceToOrchard();
 
-    if (!result.includes('txid')) {
-      throw new Error(result)
-    }
+      if (result.toLowerCase().startsWith("error") || !result.includes("txid")) {
+        throw result;
+      }
 
+      return result;
     } catch(error) {
-      this.openErrorModal('Failed to shield balance', String(error))
+      throw error;
     }
-
   }
 
   navigateToLoadingScreen = () => {

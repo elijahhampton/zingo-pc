@@ -13,8 +13,11 @@ type ReceiveProps = {
   fetchAndSetSinglePrivKey: (k: string) => void;
   fetchAndSetSingleViewKey: (k: string) => void;
   //createNewAddress: (t: AddressType) => void;
-  shieldTransparentBalanceToOrchard: () => void;
-  shieldSaplingBalanceToOrchard: () => void;
+  shieldTransparentBalanceToOrchard: () => Promise<string | { txid: string }>;
+  shieldSaplingBalanceToOrchard: () => Promise<string | { txid: string }>;
+  openErrorModal: (title: string, body: string | JSX.Element) => void;
+  closeErrorModal: () => void;
+  openPasswordAndUnlockIfNeeded: (successCallback: () => void | Promise<void>) => void;
 };
 
 export default class Receive extends Component<ReceiveProps> {
@@ -25,8 +28,11 @@ export default class Receive extends Component<ReceiveProps> {
       fetchAndSetSingleViewKey,
       //createNewAddress,
       shieldTransparentBalanceToOrchard,
-      shieldSaplingBalanceToOrchard
+      shieldSaplingBalanceToOrchard,
+      openErrorModal,
+      openPasswordAndUnlockIfNeeded
     } = this.props;
+
     const {
       addresses,
       addressPrivateKeys,
@@ -34,7 +40,7 @@ export default class Receive extends Component<ReceiveProps> {
       addressBook,
       info,
       receivePageState,
-      rerenderKey,
+      rerenderKey
     } = this.context;
 
     const uaddrs = addresses
@@ -102,8 +108,8 @@ export default class Receive extends Component<ReceiveProps> {
                       viewKey={addressViewKeys.get(a.address)}
                       fetchAndSetSinglePrivKey={fetchAndSetSinglePrivKey}
                       fetchAndSetSingleViewKey={fetchAndSetSingleViewKey}
-                      shieldTransparentBalanceToOrchard={shieldTransparentBalanceToOrchard}
-                      shieldSaplingBalanceToOrchard={shieldSaplingBalanceToOrchard}
+                      openErrorModal={openErrorModal}
+                      openPasswordAndUnlockIfNeeded={openPasswordAndUnlockIfNeeded}
                     />
                   ))}
                 </Accordion>
@@ -126,6 +132,7 @@ export default class Receive extends Component<ReceiveProps> {
                     <AddressBlock
                       key={a.address}
                       address={a}
+                      shieldDestinationAddress={uaddrs[0]}
                       currencyName={info.currencyName}
                       label={addressBookMap.get(a.address)}
                       zecPrice={info.zecPrice}
@@ -133,8 +140,9 @@ export default class Receive extends Component<ReceiveProps> {
                       viewKey={addressViewKeys.get(a.address)}
                       fetchAndSetSinglePrivKey={fetchAndSetSinglePrivKey}
                       fetchAndSetSingleViewKey={fetchAndSetSingleViewKey}
-                      shieldTransparentBalanceToOrchard={shieldTransparentBalanceToOrchard}
-                      shieldSaplingBalanceToOrchard={shieldSaplingBalanceToOrchard}
+                      shieldZec={shieldSaplingBalanceToOrchard}
+                      openErrorModal={openErrorModal}
+                      openPasswordAndUnlockIfNeeded={openPasswordAndUnlockIfNeeded}
                     />
                   ))}
                 </Accordion>
@@ -157,14 +165,16 @@ export default class Receive extends Component<ReceiveProps> {
                     <AddressBlock
                       key={a.address}
                       address={a}
+                      shieldDestinationAddress={uaddrs[0]}
                       currencyName={info.currencyName}
                       zecPrice={info.zecPrice}
                       privateKey={addressPrivateKeys.get(a.address)}
                       viewKey={addressViewKeys.get(a.address)}
                       fetchAndSetSinglePrivKey={fetchAndSetSinglePrivKey}
                       fetchAndSetSingleViewKey={fetchAndSetSingleViewKey}
-                      shieldTransparentBalanceToOrchard={shieldTransparentBalanceToOrchard}
-                      shieldSaplingBalanceToOrchard={shieldSaplingBalanceToOrchard}
+                      shieldZec={shieldTransparentBalanceToOrchard}
+                      openErrorModal={openErrorModal}
+                      openPasswordAndUnlockIfNeeded={openPasswordAndUnlockIfNeeded}
                     />
                   ))}
                 </Accordion>

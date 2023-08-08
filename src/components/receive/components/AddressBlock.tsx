@@ -10,6 +10,8 @@ import styles from "../Receive.module.css";
 import cstyles from "../../common/Common.module.css";
 import Utils from "../../../utils/utils";
 import { Address, AddressType } from "../../appstate";
+import ShieldConfirmModalInternal from "../../send/components/ShieldConfirmModal";
+import RPC from "../../../rpc/rpc";
 
 const { shell, clipboard } = window.require("electron");
 
@@ -17,33 +19,43 @@ type AddressBlockProps = {
   address: Address;
   currencyName: string;
   zecPrice: number;
+  shieldDestinationAddress?: Address;
   privateKey?: string;
   viewKey?: string;
   label?: string;
+  shieldZec?: () => Promise<string | { txid: string }>;
+  openErrorModal: (title: string, body: string | JSX.Element) => void;
   fetchAndSetSinglePrivKey: (k: string) => void;
   fetchAndSetSingleViewKey: (k: string) => void;
-  shieldTransparentBalanceToOrchard: () => void;
-  shieldSaplingBalanceToOrchard: () => void;
+  openPasswordAndUnlockIfNeeded: (successCallback: () => void | Promise<void>) => void;
 };
 
 const AddressBlock = ({
   address,
+  shieldDestinationAddress,
+  shieldZec,
   label,
   currencyName,
   zecPrice,
   privateKey,
   fetchAndSetSinglePrivKey,
   viewKey,
+  openErrorModal,
   fetchAndSetSingleViewKey,
-  shieldTransparentBalanceToOrchard,
-  shieldSaplingBalanceToOrchard
+  openPasswordAndUnlockIfNeeded
 }: AddressBlockProps) => {
   const { receivers, type } = address;
   const address_address = address.address;
   const balance = address.balance || 0;
+  const shieldDestinationAddress_address = shieldDestinationAddress?.address || ""
+  const shieldDestinationAddress_balance = shieldDestinationAddress?.balance || 0
+
+  console.log(address)
 
   const [copied, setCopied] = useState(false);
   const [timerID, setTimerID] = useState<NodeJS.Timeout | null>(null);
+
+  const [confirmationModalIsOpen, setConfirmShieldModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
     return () => {
@@ -53,7 +65,7 @@ const AddressBlock = ({
     };
   });
 
-  const openAddress = () => { 
+  const openAddress = () => {
     if (currencyName === "TAZ") {
       shell.openExternal(`https://chain.so/address/ZECTEST/${address_address}`);
     } else {
@@ -62,11 +74,17 @@ const AddressBlock = ({
   };
 
   return (
-    <AccordionItem key={copied ? 1 : 0} className={[cstyles.well, styles.receiveblock].join(" ")} uuid={address_address}>
+    <AccordionItem
+      key={copied ? 1 : 0}
+      className={[cstyles.well, styles.receiveblock].join(" ")}
+      uuid={address_address}
+    >
       <AccordionItemHeading>
         <AccordionItemButton className={cstyles.accordionHeader}>
           <div className={[cstyles.verticalflex].join(" ")}>
-            {address_address.length < 80 ? address_address : Utils.splitStringIntoChunks(address_address, 3).map(item => <div key={item}>{item}</div>)}
+            {address_address.length < 80
+              ? address_address
+              : Utils.splitStringIntoChunks(address_address, 3).map((item) => <div key={item}>{item}</div>)}
           </div>
         </AccordionItemButton>
       </AccordionItemHeading>
@@ -82,7 +100,9 @@ const AddressBlock = ({
 
             {type === AddressType.unified && !!receivers && (
               <div className={cstyles.margintopsmall}>
-                <div className={[cstyles.sublight].join(" ")}>Address types: {Utils.getReceivers(receivers).join(" + ")}</div>
+                <div className={[cstyles.sublight].join(" ")}>
+                  Address types: {Utils.getReceivers(receivers).join(" + ")}
+                </div>
               </div>
             )}
 
@@ -175,13 +195,25 @@ const AddressBlock = ({
                   View on explorer <i className={["fas", "fa-external-link-square-alt"].join(" ")} />
                 </button>
               )}
-              {type === AddressType.transparent && (
-                <button className={[cstyles.primarybutton].join(" ")} type="button" onClick={shieldTransparentBalanceToOrchard}>
+              {type === AddressType.transparent && balance > 0 && (
+                <button
+                  className={[cstyles.primarybutton].join(" ")}
+                  type="button"
+                  onClick={() => {
+                    setConfirmShieldModalOpen(true);
+                  }}
+                >
                   Shield Balance To Orchard
                 </button>
               )}
-              {type === AddressType.sapling && (
-                <button className={[cstyles.primarybutton].join(" ")} type="button" onClick={shieldSaplingBalanceToOrchard}>
+              {type === AddressType.sapling && balance > 0 && (
+                <button
+                  className={[cstyles.primarybutton].join(" ")}
+                  type="button"
+                  onClick={() => {
+                    setConfirmShieldModalOpen(true);
+                  }}
+                >
                   Shield Balance To Orchard
                 </button>
               )}
@@ -191,6 +223,21 @@ const AddressBlock = ({
             {/*
                     // @ts-ignore */}
             <QRCode value={address_address} className={[styles.receiveQrcode].join(" ")} />
+            <ShieldConfirmModalInternal
+              openPasswordAndUnlockIfNeeded={openPasswordAndUnlockIfNeeded}
+              zecPrice={zecPrice}
+              label={label}
+              openErrorModal={openErrorModal}
+              address={address.address}
+              destinationAddress={shieldDestinationAddress_address}
+              destinationBalance={shieldDestinationAddress_balance}
+              destinationPool={"Orchard"}
+              currencyName={currencyName}
+              addressBalance={balance}
+              modalIsOpen={confirmationModalIsOpen}
+              closeConfirmShieldModal={() => setConfirmShieldModalOpen(false)}
+              shieldZec={shieldZec}
+            />
           </div>
         </div>
       </AccordionItemPanel>
